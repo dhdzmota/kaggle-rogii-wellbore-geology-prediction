@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wellbore Geology Prediction — Task Explained</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel-2:#1c232d; --line:#2a313c;
+    --ink:#e6edf3; --muted:#9aa7b4; --faint:#6b7785;
+    --accent:#e0902f;          /* gamma-ray amber */
+    --accent-2:#3fb37f;        /* horizontal GR green */
+    --accent-3:#e2554e;        /* deeper GR red */
+    --accent-4:#5aa9e6;        /* coordinates blue */
+    --code-bg:#11161c;
+    --maxw:980px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent-4); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px}
+
+  /* ---- Hero ---- */
+  header.hero{
+    border-bottom:1px solid var(--line);
+    background:
+      radial-gradient(1200px 400px at 80% -10%, rgba(224,144,47,.18), transparent 60%),
+      linear-gradient(180deg,#11151b, #0e1116);
+    padding:64px 0 48px;
+  }
+  .kicker{
+    text-transform:uppercase; letter-spacing:.22em; font-size:12px;
+    color:var(--accent); font-weight:700; margin:0 0 14px;
+  }
+  h1{font-size:clamp(30px,5vw,50px); line-height:1.08; margin:0 0 16px; letter-spacing:-.02em}
+  .lede{font-size:19px; color:var(--muted); max-width:70ch; margin:0}
+  .meta-row{display:flex; flex-wrap:wrap; gap:10px; margin-top:26px}
+  .chip{
+    font-size:13px; color:var(--ink); background:var(--panel-2);
+    border:1px solid var(--line); padding:6px 12px; border-radius:999px;
+  }
+  .chip b{color:var(--accent)}
+
+  /* ---- TOC ---- */
+  nav.toc{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:20px 24px; margin:36px 0; columns:2; column-gap:32px;
+  }
+  nav.toc h2{margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:.15em; color:var(--faint); column-span:all}
+  nav.toc ol{margin:0; padding-left:20px}
+  nav.toc li{margin:5px 0; break-inside:avoid}
+  @media(max-width:640px){nav.toc{columns:1}}
+
+  section{padding:30px 0; border-top:1px solid var(--line)}
+  section:first-of-type{border-top:none}
+  h2.sec{font-size:27px; margin:6px 0 4px; letter-spacing:-.01em; scroll-margin-top:18px}
+  .slide-tag{
+    display:inline-block; font-size:11px; font-weight:700; letter-spacing:.1em;
+    color:var(--faint); border:1px solid var(--line); border-radius:6px;
+    padding:2px 8px; margin-bottom:8px; text-transform:uppercase;
+  }
+  h3{font-size:18px; margin:26px 0 8px; color:var(--ink)}
+  p{margin:12px 0}
+  ul,ol{padding-left:22px}
+  li{margin:6px 0}
+
+  figure{margin:22px 0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; overflow:hidden}
+  figure img,figure video{display:block; width:100%; height:auto; border-radius:8px; background:#000}
+  figcaption{color:var(--faint); font-size:13.5px; padding:10px 4px 2px; line-height:1.5}
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media(max-width:680px){.two{grid-template-columns:1fr}}
+
+  /* ---- Callouts ---- */
+  .callout{
+    border-left:4px solid var(--accent); background:var(--panel);
+    border-radius:0 12px 12px 0; padding:16px 20px; margin:22px 0;
+  }
+  .callout.data{border-left-color:var(--accent-2)}
+  .callout.warn{border-left-color:var(--accent-3)}
+  .callout .label{
+    font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); margin-bottom:6px; display:block;
+  }
+  .callout.data .label{color:var(--accent-2)}
+  .callout.warn .label{color:var(--accent-3)}
+  .callout p{margin:6px 0}
+
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.88em;
+    background:var(--code-bg); border:1px solid var(--line); padding:1px 6px; border-radius:5px; color:#f0d9a8}
+  pre{background:var(--code-bg); border:1px solid var(--line); border-radius:10px; padding:16px; overflow:auto; font-size:13px; line-height:1.6}
+  pre code{background:none; border:none; padding:0; color:var(--ink)}
+
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:14.5px}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--accent); font-size:12px; text-transform:uppercase; letter-spacing:.06em; border-bottom:2px solid var(--line)}
+  td code{font-size:13px}
+  tr:hover td{background:var(--panel)}
+
+  .legend{display:flex; flex-wrap:wrap; gap:14px; margin:14px 0; font-size:13.5px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:7px}
+  .dot{width:12px; height:12px; border-radius:3px; display:inline-block}
+
+  footer{border-top:1px solid var(--line); padding:34px 0 60px; color:var(--faint); font-size:13.5px}
+  .pill{display:inline-block; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:3px 9px; font-size:12.5px; color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">AI Challenge · Subsurface Geosteering</p>
+    <h1>Wellbore Geology Prediction</h1>
+    <p class="lede">A walkthrough of the task: predict the geological profile (<b>TVT</b>) along a horizontal oil &amp; gas well using its gamma-ray log, its 3D trajectory, and a nearby reference (“typewell”) — for the portion of the well drilled <em>after</em> the prediction starts.</p>
+    <div class="meta-row">
+      <span class="chip">Source deck: <b>AI_wellbore_geology_prediction_task_en.pptx</b></span>
+      <span class="chip">14 slides</span>
+      <span class="chip"><b>2,319</b> training wells</span>
+      <span class="chip">Metric: <b>RMSE</b> on dTVT</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#big-picture">The big picture</a></li>
+      <li><a href="#data">Data available &amp; file layout</a></li>
+      <li><a href="#horizontal">The horizontal well file</a></li>
+      <li><a href="#typewell">The typewell (vertical) file</a></li>
+      <li><a href="#goal">The goal: GR → TVT</a></li>
+      <li><a href="#signatures">Reading GR signatures</a></li>
+      <li><a href="#constant">When geology is flat</a></li>
+      <li><a href="#video-gr">Video: GR behavior → TVT</a></li>
+      <li><a href="#resolution">Resolution: lateral GR beats typewell</a></li>
+      <li><a href="#map">Map view of all wells</a></li>
+      <li><a href="#video-3d">3D view of all wells</a></li>
+      <li><a href="#dip">Geological dip &amp; azimuth</a></li>
+      <li><a href="#offset">Offset wells help prediction</a></li>
+      <li><a href="#scoring">How predictions are scored</a></li>
+      <li><a href="#cheatsheet">Glossary &amp; modeling cheatsheet</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ BIG PICTURE ============ -->
+  <section id="big-picture">
+    <span class="slide-tag">Slide 1 · Orientation</span>
+    <h2 class="sec">The big picture</h2>
+    <p>When an oil &amp; gas company drills a <strong>horizontal well</strong>, the drill bit travels thousands of feet sideways through rock layers. Knowing <em>which</em> rock layer the bit is currently in — and how that layer rises or falls along the path — is called <strong>geosteering</strong>. Get it right and the well stays inside the productive zone; get it wrong and it drifts into worthless rock.</p>
+    <p>This challenge reframes geosteering as a machine-learning problem. For each well you are given a <strong>gamma-ray (GR) log</strong> — a measurement of natural radioactivity that acts as a fingerprint for each rock layer — plus the well's 3D path, and a nearby vertical reference well. From these you must reconstruct the geology, expressed as a single curve called <strong>TVT</strong>, for the part of the well where it is unknown.</p>
+    <div class="callout">
+      <span class="label">In one sentence</span>
+      <p>Use the gamma-ray pattern of the horizontal well to figure out where it sits inside the layered rock — matching its GR fingerprint against a known vertical reference — and output a TVT value at every foot of the lateral.</p>
+    </div>
+  </section>
+
+  <!-- ============ DATA ============ -->
+  <section id="data">
+    <span class="slide-tag">Slide 2 · Data available</span>
+    <h2 class="sec">Data available &amp; file layout</h2>
+    <p>Every well is described by <strong>two CSV files</strong>: the horizontal well itself and the vertical reference assigned to it.</p>
+    <figure>
+      <img src="assets/image1.png" alt="Zoomed-in TVT plot showing the horizontal well path through dipping geological layers" />
+      <figcaption><b>Zoomed-in TVT plot.</b> The wavy curve is the well path threading through stacked geological formations. The vertical axis is TVT (true vertical thickness / depth into the layer cake); each colored band is a different rock formation.</figcaption>
+    </figure>
+    <div class="callout data">
+      <span class="label">In this repository</span>
+      <p>The deck uses illustrative names like <code>Well10001__horizontal_well.csv</code>. The actual Kaggle data uses short hash IDs instead, e.g.:</p>
+      <pre><code>data/raw/train/000d7d20__horizontal_well.csv   ← horizontal well
+data/raw/train/000d7d20__typewell.csv          ← its assigned typewell
+data/raw/train/000d7d20.png                     ← a ready-made plot of the well
+data/raw/test/  ...                             ← same pairs, target hidden</code></pre>
+      <p>There are <strong>2,319</strong> training well pairs. Each <code>__horizontal_well.csv</code> is paired 1-to-1 with a <code>__typewell.csv</code> sharing the same ID.</p>
+    </div>
+  </section>
+
+  <!-- ============ HORIZONTAL FILE ============ -->
+  <section id="horizontal">
+    <span class="slide-tag">Slide 3 · Horizontal well data</span>
+    <h2 class="sec">The horizontal well file</h2>
+    <p>This is the well you are predicting for. Units are <strong>feet</strong>. The deck highlights a few columns, but the real training file carries more — including the geological formation tops.</p>
+    <figure>
+      <img src="assets/image2.png" alt="Spreadsheet of the horizontal well CSV with MD, XYZ, formation tops, TVT, GR and TVT_input columns" />
+      <figcaption><b>A horizontal well CSV.</b> One row per measured point along the well (≈1-ft spacing). Note the right-most columns: <code>TVT</code> (the answer) sits next to <code>TVT_input</code> — and <code>TVT_input</code> stops being filled in partway down, exactly at the Prediction Start point.</figcaption>
+    </figure>
+    <table>
+      <thead><tr><th>Column</th><th>Meaning</th><th>Available where?</th></tr></thead>
+      <tbody>
+        <tr><td><code>MD</code></td><td>Measured depth — distance travelled along the wellbore (its “length”)</td><td>Train &amp; test</td></tr>
+        <tr><td><code>X, Y, Z</code></td><td>3D coordinates of each point of the well path</td><td>Train &amp; test</td></tr>
+        <tr><td><code>GR</code></td><td>Gamma-ray reading at each point (some values may be <code>NaN</code>)</td><td>Train &amp; test</td></tr>
+        <tr><td><code>TVT_input</code></td><td>Known geology values, but <em>only up to the Prediction Start (PS) point</em></td><td>Train &amp; test</td></tr>
+        <tr><td><code>TVT</code></td><td><strong>The target</strong> — geology of the wellbore at every point</td><td><b>Train only</b></td></tr>
+        <tr><td><code>ANCC, ASTNU, ASTNL,<br>EGFDU, EGFDL, BUDA</code></td><td>Top depth of each named geological formation — the layer markers</td><td><b>Train only</b></td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <span class="label">Train vs. test — the key asymmetry</span>
+      <p>The <strong>test</strong> horizontal files contain only <code>MD, X, Y, Z, GR, TVT_input</code>. The target <code>TVT</code> and all six formation-top columns are <strong>removed</strong>. So at inference time your model must recover geology from trajectory + gamma ray + the partial <code>TVT_input</code> + the typewell — nothing more.</p>
+    </div>
+  </section>
+
+  <!-- ============ TYPEWELL ============ -->
+  <section id="typewell">
+    <span class="slide-tag">Slide 4 · Vertical (Typewell) data</span>
+    <h2 class="sec">The typewell (vertical) reference</h2>
+    <p>Each horizontal well is paired with exactly one <strong>typewell</strong> — a nearby vertical well that has logged the full layer cake from top to bottom. Because it is vertical, its TVT axis is unambiguous and <em>always fully known</em>. It is your “ground-truth ruler” for what each rock layer's GR fingerprint looks like.</p>
+    <figure>
+      <img src="assets/image3.png" alt="Typewell CSV with TVT, GR and Geology columns" />
+      <figcaption><b>A typewell CSV.</b> Just three columns: <code>TVT</code> (depth in the vertical well), <code>GR</code> (gamma ray at that depth), and <code>Geology</code> (the name of the rock layer at that depth).</figcaption>
+    </figure>
+    <table>
+      <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>TVT</code></td><td>True vertical thickness — depth measured straight down the layer cake</td></tr>
+        <tr><td><code>GR</code></td><td>Gamma-ray value at each depth of the vertical well</td></tr>
+        <tr><td><code>Geology</code></td><td>Name of the geological layer (e.g. <code>ANCC</code>, <code>BUDA</code>, <code>EGFDU</code> …)</td></tr>
+      </tbody>
+    </table>
+    <div class="callout data">
+      <span class="label">The naming connects the two files</span>
+      <p>The <code>Geology</code> labels in the typewell are the <em>same names</em> as the formation-top columns in the horizontal file (<code>ANCC, ASTNU, BUDA, …</code>). That is the bridge: a GR pattern at a known TVT in the typewell tells you which named layer the horizontal well is in when it shows a matching GR pattern.</p>
+    </div>
+  </section>
+
+  <!-- ============ GOAL ============ -->
+  <section id="goal">
+    <span class="slide-tag">Slide 5 · The goal</span>
+    <h2 class="sec">The goal: turn GR into TVT</h2>
+    <p>The single objective of the challenge:</p>
+    <ul>
+      <li>The typewell's TVT is <strong>always known</strong>.</li>
+      <li>The horizontal well's TVT is known <strong>only up to the Prediction Start (PS) point</strong> (that is what <code>TVT_input</code> gives you).</li>
+      <li><strong>Your job:</strong> compute TVT for every point <em>beyond</em> PS, using the horizontal well's <code>X, Y, Z</code> and <code>GR</code> together with the typewell's <code>TVT</code> and <code>GR</code>.</li>
+    </ul>
+    <div class="callout data">
+      <span class="label">What “after PS” means numerically</span>
+      <p>For training well <code>000d7d20</code>: the file has <strong>5,278</strong> rows, but <code>TVT_input</code> is filled for only the first <strong>1,442</strong> of them. The submission file then asks for exactly <strong>3,836</strong> predictions for that well — and 5,278 − 1,442 = 3,836. So you predict <em>every 1-ft step after PS</em>, and not a single step before it.</p>
+    </div>
+  </section>
+
+  <!-- ============ SIGNATURES ============ -->
+  <section id="signatures">
+    <span class="slide-tag">Slide 6 · Reading the signal</span>
+    <h2 class="sec">Reading GR signatures: is the well climbing or sinking?</h2>
+    <p>The core intuition. As the bit moves along the lateral, the GR it records is the same fingerprint the typewell recorded vertically — just stretched or reversed depending on whether the well is moving <em>up</em> or <em>down</em> through the layers. By matching the lateral GR pattern to the typewell GR, you can tell which way TVT is moving.</p>
+    <div class="two">
+      <figure>
+        <img src="assets/image5.png" alt="GR projected on TVT track, signature matching typewell, TVT increasing" />
+        <figcaption>GR projected onto the TVT track — the GR signature matches the typewell's, read in one direction → <b>TVT is increasing</b> (well dropping deeper into the layers).</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/image4.png" alt="GR projected on TVT track, signature matching typewell reversed, TVT decreasing" />
+        <figcaption>The same matching, read in the opposite direction → <b>TVT is decreasing</b> (well rising up through the layers).</figcaption>
+      </figure>
+    </div>
+    <div class="callout">
+      <span class="label">Why this works</span>
+      <p>Rock layers have a characteristic GR sequence (sandy = low GR, shaly = high GR, etc.). That sequence is fixed. So when the lateral's GR replays that sequence forwards, the well is going deeper (TVT up); when it replays it backwards, the well is coming back up (TVT down). The prediction problem is essentially <strong>aligning</strong> the lateral GR trace to the typewell GR trace.</p>
+    </div>
+  </section>
+
+  <!-- ============ CONSTANT ============ -->
+  <section id="constant">
+    <span class="slide-tag">Slide 7 · The flat case</span>
+    <h2 class="sec">When geology is flat: constant TVT</h2>
+    <p>If the well is running <em>along</em> a single layer rather than crossing layers, its GR barely changes — and that means TVT is roughly constant. Three regimes to recognize:</p>
+    <figure>
+      <img src="assets/image6.png" alt="Diagram showing TVT increasing, decreasing, and constant zones with GR" />
+      <figcaption>When the <b>GR signature is constant</b>, <b>TVT is constant</b> — the bit is tracking inside one formation. The plot contrasts the increasing, decreasing, and constant regimes side by side.</figcaption>
+    </figure>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--accent-2)"></span> GR varies, replaying sequence → TVT increasing</span>
+      <span><span class="dot" style="background:var(--accent-3)"></span> GR varies, reversed → TVT decreasing</span>
+      <span><span class="dot" style="background:var(--accent)"></span> GR flat → TVT constant</span>
+    </div>
+  </section>
+
+  <!-- ============ VIDEO GR ============ -->
+  <section id="video-gr">
+    <span class="slide-tag">Slide 8 · Animation</span>
+    <h2 class="sec">Video: how GR behavior reveals TVT</h2>
+    <p>This animation from the deck shows the relationship in motion — as the well advances, watch how each twist in the gamma-ray curve corresponds to the well climbing or sinking through the geology.</p>
+    <figure>
+      <video controls preload="metadata" poster="assets/image7.png">
+        <source src="assets/media1.mp4" type="video/mp4" />
+        Your browser cannot play this embedded video — open <code>assets/media1.mp4</code> directly.
+      </video>
+      <figcaption><b>GR behavior → TVT along the lateral.</b> The vertical axis is the TVT scale; the moving trace ties gamma-ray wiggles to geological position. (If the video does not load, play <code>docs/assets/media1.mp4</code>.)</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============ RESOLUTION ============ -->
+  <section id="resolution">
+    <span class="slide-tag">Slide 9 · A modeling tip</span>
+    <h2 class="sec">Resolution: the lateral GR is sharper than the typewell GR</h2>
+    <p>An important practical hint from the deck. The gamma-ray recorded along the <em>horizontal</em> well has <strong>higher resolution</strong> than the typewell's GR — it captures finer detail of the same layers.</p>
+    <div class="two">
+      <figure>
+        <img src="assets/image9.png" alt="Well path with Prediction Start marked and GR before/after PS" />
+        <figcaption>The well path with the <b>Prediction Start (PS)</b> marked, splitting <b>GR before PS</b> from <b>GR after PS</b>.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/image8.png" alt="Comparison of green horizontal GR, red GR, and black typewell GR correlation" />
+        <figcaption>The green lateral GR correlates better with the red GR than with the black typewell GR.</figcaption>
+      </figure>
+    </div>
+    <div class="callout">
+      <span class="label">Suggested strategy (from the deck)</span>
+      <p>It may be better to use the high-resolution GR from the horizontal well <em>before</em> the PS point — combined with the deeper TVT data you already know — to correlate and extend across the rest of the lateral, rather than relying solely on the lower-resolution typewell GR.</p>
+    </div>
+  </section>
+
+  <!-- ============ MAP ============ -->
+  <section id="map">
+    <span class="slide-tag">Slide 10 · Spatial context</span>
+    <h2 class="sec">Map view of all wells</h2>
+    <p>The training and validation wells are not isolated — they sit in a shared field. Their map positions matter because neighboring wells pass through the same geology.</p>
+    <figure>
+      <img src="assets/image10.png" alt="Map view of all training and validation wells in the field" />
+      <figcaption><b>Map (plan) view</b> of all training and validation wells. Each line is one horizontal well's surface trace. Clusters of wells share geological context — a fact exploited in the “offset well” sections below.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============ VIDEO 3D ============ -->
+  <section id="video-3d">
+    <span class="slide-tag">Slide 11 · Animation</span>
+    <h2 class="sec">3D view of all wells</h2>
+    <p>The same wells in three dimensions, showing how the laterals stack vertically and how the geology dips across the field.</p>
+    <figure>
+      <video controls preload="metadata" poster="assets/image11.png">
+        <source src="assets/media2.mp4" type="video/mp4" />
+        Your browser cannot play this embedded video — open <code>assets/media2.mp4</code> directly.
+      </video>
+      <figcaption><b>3D view</b> of all training and validation wells. (Larger file — if it does not load inline, play <code>docs/assets/media2.mp4</code>.)</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============ DIP ============ -->
+  <section id="dip">
+    <span class="slide-tag">Slide 12 · Geometry</span>
+    <h2 class="sec">Geological dip and drilling azimuth</h2>
+    <p>Rock layers are rarely perfectly horizontal — they <strong>dip</strong> (tilt). How much dip a well “sees” depends on the <strong>azimuth</strong> (compass direction) it is drilled in: drill along the dip direction and TVT changes fast; drill across it and the geology looks almost flat.</p>
+    <div class="two">
+      <figure>
+        <img src="assets/image12.png" alt="Cross-section where geology is almost flat" />
+        <figcaption>Geology appears <b>almost flat</b> for this azimuth.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/image13.png" alt="Cross-section where geology is dipping in a direction" />
+        <figcaption>Geology is clearly <b>dipping</b> — the same layers tilt across the section.</figcaption>
+      </figure>
+    </div>
+    <div class="callout">
+      <span class="label">Why it matters for prediction</span>
+      <p>The azimuth of the horizontal well (recoverable from its <code>X, Y</code> path) sets your expectation for how steeply TVT should change. A model that ignores trajectory direction will mis-predict the rate of TVT change.</p>
+    </div>
+  </section>
+
+  <!-- ============ OFFSET ============ -->
+  <section id="offset">
+    <span class="slide-tag">Slide 13 · Neighbors</span>
+    <h2 class="sec">Offset wells help predict the current well</h2>
+    <p>Because dips behave consistently across a small area, the geology of an <strong>offset well</strong> (a neighbor) is a strong prior for the well you are predicting.</p>
+    <div class="two">
+      <figure>
+        <img src="assets/image14.png" alt="Neighboring wells showing similar dip behavior" />
+        <figcaption>Geological dips behave <b>similarly in neighboring wells</b> — dip here implies dip there.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/image15.png" alt="Flat-vs-dip pattern shared across adjacent wells" />
+        <figcaption>The same flat / dip pattern repeats across adjacent wells, so neighbors transfer information.</figcaption>
+      </figure>
+    </div>
+    <div class="callout data">
+      <span class="label">Modeling implication</span>
+      <p>The map coordinates (<code>X, Y</code>) aren't just for computing azimuth — they let you find each well's spatial neighbors and borrow their (known) TVT behavior. This is a route to beating a per-well-only model.</p>
+    </div>
+  </section>
+
+  <!-- ============ SCORING ============ -->
+  <section id="scoring">
+    <span class="slide-tag">Slide 14 · Evaluation</span>
+    <h2 class="sec">How predictions are scored</h2>
+    <p>Each horizontal well has TVT values to predict at a <strong>one-foot step</strong>. The error at each predicted point is:</p>
+    <pre><code>dTVT = manualTVT − predictedTVT      (per predicted point)</code></pre>
+    <p>and the overall score is the <strong>Root Mean Squared Error</strong> of all the <code>dTVT</code> values across every predicted point:</p>
+    <pre><code>RMSE = sqrt( mean( dTVT² ) )</code></pre>
+    <div class="callout warn">
+      <span class="label">What RMSE rewards</span>
+      <p>Squaring means <strong>large misses are punished disproportionately</strong>. A model that is roughly right everywhere beats one that is perfect in most places but wildly wrong in a few. Getting the broad TVT trend (the up/down/flat regime) right matters more than chasing every wiggle.</p>
+    </div>
+    <div class="callout data">
+      <span class="label">Submission format (this repo)</span>
+      <p><code>sample_submission.csv</code> has two columns, <code>id</code> and <code>tvt</code>, where each <code>id</code> is <code>&lt;wellID&gt;_&lt;rowIndex&gt;</code> — one row per predicted point after PS:</p>
+      <pre><code>id,tvt
+000d7d20_1442,0.0
+000d7d20_1443,0.0
+...</code></pre>
+    </div>
+  </section>
+
+  <!-- ============ CHEATSHEET ============ -->
+  <section id="cheatsheet">
+    <h2 class="sec">Glossary &amp; modeling cheatsheet</h2>
+    <table>
+      <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>MD</code></td><td>Measured Depth — length travelled along the wellbore</td></tr>
+        <tr><td><code>TVT</code></td><td>True Vertical Thickness — depth into the geological layer cake; <strong>the prediction target</strong></td></tr>
+        <tr><td><code>TVT_input</code></td><td>TVT that is known up to the Prediction Start point</td></tr>
+        <tr><td><code>GR</code></td><td>Gamma Ray — natural radioactivity log; the rock-layer fingerprint</td></tr>
+        <tr><td><code>PS</code></td><td>Prediction Start — the MD where known TVT stops and prediction begins</td></tr>
+        <tr><td>Typewell</td><td>The paired vertical reference well with fully known TVT/GR/Geology</td></tr>
+        <tr><td>Dip / Azimuth</td><td>Tilt of the layers / compass direction of the well — together they set how fast TVT changes</td></tr>
+        <tr><td>Offset well</td><td>A spatial neighbor whose known geology informs the current well</td></tr>
+      </tbody>
+    </table>
+    <h3>A reasonable modeling recipe</h3>
+    <ol>
+      <li><strong>Anchor on the typewell.</strong> Build the GR-vs-TVT signature curve from the typewell — your reference for what each layer's GR looks like.</li>
+      <li><strong>Use the known segment.</strong> Calibrate using the lateral's GR and TVT <em>before</em> PS (high resolution, ground-truth TVT) to learn this well's local GR↔TVT mapping.</li>
+      <li><strong>Align past PS.</strong> Extend by matching/aligning the after-PS lateral GR against the reference, tracking whether TVT is rising, falling, or flat.</li>
+      <li><strong>Constrain with geometry.</strong> Use <code>X, Y, Z</code> and azimuth to bound how quickly TVT can plausibly change.</li>
+      <li><strong>Borrow from neighbors.</strong> Pull TVT priors from spatially close offset wells.</li>
+      <li><strong>Optimize for RMSE.</strong> Prefer smooth, trend-correct predictions over noisy fits — outliers are expensive.</li>
+    </ol>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p>Generated from <span class="pill">data/raw/AI_wellbore_geology_prediction_task_en.pptx</span> — all figures and videos are the originals extracted from the deck (<code>docs/assets/</code>). Data-grounded notes verified against the <code>train/</code>, <code>test/</code> and <code>sample_submission.csv</code> files in this repository.</p>
+</footer>
+
+</body>
+</html>

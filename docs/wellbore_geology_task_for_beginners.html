@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wellbore Geology Prediction — Explained from Scratch</title>
+<style>
+  :root{
+    --bg:#fbf8f3; --paper:#ffffff; --line:#ece3d6; --line-2:#e0d4c2;
+    --ink:#2b2620; --soft:#5f574c; --faint:#8a8073;
+    --amber:#d98a1f; --amber-soft:#fdf2dd;
+    --green:#3a9d6e; --green-soft:#e6f5ed;
+    --red:#d1564d; --red-soft:#fceae8;
+    --blue:#3f7fb8; --blue-soft:#e8f1f9;
+    --purple:#7a5ea8; --purple-soft:#f1ecf8;
+    --maxw:860px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:17px/1.7 "Iowan Old Style","Palatino Linotype",Georgia,serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sans{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px}
+  a{color:var(--blue)}
+
+  /* hero */
+  header.hero{
+    background:linear-gradient(180deg,#fff7e9,#fbf8f3);
+    border-bottom:1px solid var(--line); padding:56px 0 40px; text-align:center;
+  }
+  .badge{
+    display:inline-block; font-family:-apple-system,sans-serif; font-size:12px; font-weight:700;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--amber);
+    background:var(--amber-soft); border:1px solid #f0dcb6; padding:6px 14px; border-radius:999px; margin-bottom:18px;
+  }
+  h1{font-size:clamp(30px,5.5vw,46px); line-height:1.12; margin:0 0 14px; letter-spacing:-.01em}
+  .sub{font-size:19px; color:var(--soft); max-width:60ch; margin:0 auto}
+
+  /* reading-time / steps */
+  .progress-note{font-family:-apple-system,sans-serif; font-size:13.5px; color:var(--faint); margin-top:22px}
+
+  section{padding:14px 0}
+  .step{
+    background:var(--paper); border:1px solid var(--line); border-radius:18px;
+    padding:30px 34px; margin:26px 0; box-shadow:0 1px 0 rgba(0,0,0,.02);
+  }
+  .stepnum{
+    font-family:-apple-system,sans-serif; font-weight:800; font-size:13px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--amber); margin:0 0 4px;
+  }
+  h2{font-size:27px; line-height:1.2; margin:2px 0 14px; letter-spacing:-.01em}
+  h3{font-family:-apple-system,sans-serif; font-size:17px; margin:24px 0 6px}
+  p{margin:13px 0}
+
+  /* analogy box */
+  .analogy{
+    background:var(--blue-soft); border:1px solid #cfe1f1; border-radius:14px;
+    padding:16px 20px; margin:18px 0; font-size:16.5px;
+  }
+  .analogy .tag{font-family:-apple-system,sans-serif; font-weight:800; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:5px}
+
+  .really{
+    background:var(--green-soft); border:1px solid #c8e8d6; border-radius:14px;
+    padding:16px 20px; margin:18px 0;
+  }
+  .really .tag{font-family:-apple-system,sans-serif; font-weight:800; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--green); display:block; margin-bottom:5px}
+
+  .heads-up{
+    background:var(--red-soft); border:1px solid #f1cfca; border-radius:14px;
+    padding:16px 20px; margin:18px 0;
+  }
+  .heads-up .tag{font-family:-apple-system,sans-serif; font-weight:800; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--red); display:block; margin-bottom:5px}
+
+  .word{
+    background:var(--purple-soft); border:1px solid #ddd0ee; border-radius:14px;
+    padding:16px 20px; margin:18px 0;
+  }
+  .word .tag{font-family:-apple-system,sans-serif; font-weight:800; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--purple); display:block; margin-bottom:5px}
+  .word b{color:var(--purple)}
+
+  figure{margin:22px 0; background:#fff; border:1px solid var(--line); border-radius:14px; padding:10px; overflow:hidden}
+  figure img,figure video{display:block; width:100%; height:auto; border-radius:9px; background:#111}
+  figcaption{font-family:-apple-system,sans-serif; color:var(--faint); font-size:14px; padding:11px 6px 3px; line-height:1.5}
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media(max-width:640px){.two{grid-template-columns:1fr}}
+
+  ul,ol{padding-left:24px} li{margin:8px 0}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.85em;
+    background:#f4eee3; border:1px solid var(--line-2); padding:1px 6px; border-radius:5px; color:#9a5b12}
+  pre{background:#2b2620; color:#f3ead9; border-radius:12px; padding:16px 18px; overflow:auto; font-size:14px; line-height:1.6; font-family:"SF Mono",ui-monospace,Menlo,monospace}
+
+  .big-key{
+    background:linear-gradient(180deg,#fff,#fffaf0); border:2px solid var(--amber);
+    border-radius:16px; padding:22px 26px; margin:24px 0; text-align:center;
+  }
+  .big-key .tag{font-family:-apple-system,sans-serif; font-weight:800; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--amber)}
+  .big-key p{font-size:19px; margin:8px 0 0}
+
+  table{width:100%; border-collapse:collapse; margin:16px 0; font-family:-apple-system,sans-serif; font-size:15px}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--amber)}
+
+  .tldr{background:#fff; border:1px solid var(--line); border-radius:18px; padding:24px 30px; margin:26px 0}
+  .tldr h2{font-size:22px; margin-top:0}
+  .tldr ol{font-size:16.5px}
+
+  footer{text-align:center; color:var(--faint); font-family:-apple-system,sans-serif; font-size:13.5px; padding:30px 0 60px}
+
+  .emoji{font-style:normal}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">No geology knowledge needed</span>
+    <h1>Predicting the Rock Around a Well</h1>
+    <p class="sub">The same challenge as the technical version — but starting from absolute zero. If you've never heard the word “wellbore,” you're in exactly the right place.</p>
+    <p class="progress-note sans">Read top to bottom · 15 short steps · every word is explained the first time it appears</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 0 -->
+  <section class="step">
+    <p class="stepnum">Start here</p>
+    <h2>What is this even about?</h2>
+    <p>An oil company drills a long, skinny hole deep underground to reach oil and gas. As they drill, they desperately want to know <strong>what kind of rock the drill is passing through right now</strong>, because the oil only lives in certain rock. Aim wrong and you drill through worthless rock and waste millions.</p>
+    <p>The problem: you can't <em>see</em> underground. You only get a few indirect measurements. This challenge is about taking those measurements and <strong>guessing the rock</strong> the drill is in — automatically, with a computer.</p>
+    <div class="big-key">
+      <span class="tag">The whole task in one line</span>
+      <p>“Here are some clues about a hole in the ground. Tell me which rock layer the hole is in, all the way along.”</p>
+    </div>
+  </section>
+
+  <!-- 1 -->
+  <section class="step">
+    <p class="stepnum">Step 1 · The mental picture</p>
+    <h2>The ground is a tilted layer cake</h2>
+    <div class="analogy">
+      <span class="tag">Picture this</span>
+      Imagine a giant <strong>layer cake</strong> buried underground — sponge, then jam, then cream, then sponge again, stacked for thousands of feet. Each layer is a different <strong>type of rock</strong>. The layers were laid down flat over millions of years, but the ground has since tilted, so the cake sits at a slight slant.
+    </div>
+    <p>That's basically what's under our feet: stacked sheets of rock, each one different, often gently tilted. Geologists call each sheet a <strong>formation</strong> or <strong>layer</strong>.</p>
+    <div class="word">
+      <span class="tag">New word</span>
+      <p><b>Formation / layer</b> = one sheet of a particular rock type in the cake. In this dataset the layers have short code names like <code>ANCC</code>, <code>BUDA</code>, <code>EGFDU</code> — just treat them as “the jam layer,” “the cream layer,” etc.</p>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="step">
+    <p class="stepnum">Step 2 · The hole</p>
+    <h2>A well is a straw pushed through the cake</h2>
+    <div class="analogy">
+      <span class="tag">Picture this</span>
+      A <strong>well</strong> is like pushing a very long straw into the cake. Older wells go straight <strong>down</strong>. Modern wells go down a bit and then <strong>turn sideways</strong>, traveling horizontally for a mile or more so they pass through a lot of the good layer.
+    </div>
+    <p>This challenge is all about those <strong>horizontal wells</strong> — the ones that turn and travel sideways. The sideways part is called the <strong>lateral</strong>.</p>
+    <div class="word">
+      <span class="tag">New words</span>
+      <p><b>Wellbore</b> = the actual hole the drill makes (the straw). <b>Horizontal well</b> = a well that turns and runs sideways. <b>Lateral</b> = the long sideways section of that well.</p>
+    </div>
+    <figure>
+      <img src="assets/image1.png" alt="A wavy well path passing through stacked colored rock layers" />
+      <figcaption>The wavy line is the straw (the well) snaking through the colored layers of the cake. Notice it isn't perfectly straight — it drifts up and down between layers as it goes.</figcaption>
+    </figure>
+  </section>
+
+  <!-- 3 -->
+  <section class="step">
+    <p class="stepnum">Step 3 · The one number we care about</p>
+    <h2>“How deep into the cake am I?” = TVT</h2>
+    <p>At any point along the straw, the single most useful thing to know is: <strong>how far down into the layer cake are we?</strong> That depth-into-the-cake is the number this whole contest is about. It's called <strong>TVT</strong>.</p>
+    <div class="word">
+      <span class="tag">The star of the show</span>
+      <p><b>TVT</b> (True Vertical Thickness) = how deep you are <em>measured straight down through the layers</em>, regardless of how far sideways the straw has wandered. If you know the TVT, you know exactly which layer you're in. <strong>TVT is the thing we must predict.</strong></p>
+    </div>
+    <div class="analogy">
+      <span class="tag">Why two kinds of “depth”?</span>
+      Imagine walking down a wheelchair ramp vs. a ladder. You might walk <em>100 feet along the ramp</em> but only drop <em>10 feet down</em>. The “length you walked” and the “height you dropped” are different numbers. Wells are the same — so geologists track both (next step).
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step">
+    <p class="stepnum">Step 4 · Two rulers</p>
+    <h2>Length-along-the-straw vs. depth-into-the-cake</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Plain meaning</th><th>Ramp analogy</th></tr></thead>
+      <tbody>
+        <tr><td><code>MD</code> (Measured Depth)</td><td>How much straw you've pushed in — total distance traveled along the hole.</td><td>Feet walked <em>along</em> the ramp</td></tr>
+        <tr><td><code>TVT</code></td><td>How deep into the layer cake you are.</td><td>Height you actually <em>dropped</em></td></tr>
+      </tbody>
+    </table>
+    <p>So as the lateral travels sideways, <code>MD</code> keeps climbing steadily (more straw used), while <code>TVT</code> wiggles up and down depending on whether the straw is rising or sinking through the layers.</p>
+  </section>
+
+  <!-- 5 -->
+  <section class="step">
+    <p class="stepnum">Step 5 · The magic clue</p>
+    <h2>Gamma Ray: every rock layer has a “glow fingerprint”</h2>
+    <div class="analogy">
+      <span class="tag">Picture this</span>
+      Every rock type is naturally, very faintly radioactive — some glow a little more, some a little less. A sensor on the drill measures this faint glow continuously. So each layer of the cake has its own <strong>glow level</strong>, like a barcode stripe: jam glows high, cream glows low, sponge glows medium.
+    </div>
+    <p>This glow measurement is called <strong>Gamma Ray</strong>, or <code>GR</code>. It's the single most powerful clue we have, because the <em>pattern</em> of glow as you move tells you which layers you're crossing.</p>
+    <div class="word">
+      <span class="tag">New word</span>
+      <p><b>GR (Gamma Ray)</b> = a number measuring the natural “glow” (radioactivity) of the rock at each point. Different layers have different, recognizable GR values. Think of it as a <strong>fingerprint scanner for rock</strong>. (Occasionally the sensor misses a reading, so some GR values are blank / <code>NaN</code> — “not a number.”)</p>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="step">
+    <p class="stepnum">Step 6 · The cheat sheet</p>
+    <h2>The “typewell” is the answer key</h2>
+    <div class="analogy">
+      <span class="tag">Picture this</span>
+      Before drilling sideways, someone drilled a plain <strong>straight-down hole</strong> nearby and carefully recorded the glow (GR) at every depth, plus the name of the layer at every depth. That straight-down hole is a <strong>complete, labeled fingerprint catalog</strong> of the cake: “at this depth the glow is X and it's the jam layer,” all the way down.
+    </div>
+    <p>That reference hole is called the <strong>typewell</strong>. It's your cheat sheet. Because it goes straight down, its TVT (depth-into-cake) is never in doubt — it's known everywhere.</p>
+    <div class="word">
+      <span class="tag">New word</span>
+      <p><b>Typewell</b> = a nearby straight-down well where we already know everything: the glow (GR), the depth (TVT), <em>and</em> the layer name (Geology) at every point. Each sideways well is paired with one typewell to use as its reference.</p>
+    </div>
+    <figure>
+      <img src="assets/image3.png" alt="Typewell spreadsheet with three columns: TVT, GR, Geology" />
+      <figcaption>The typewell's whole record is just three columns: <b>TVT</b> (depth), <b>GR</b> (glow at that depth), and <b>Geology</b> (the layer's name). This is the answer key we match against.</figcaption>
+    </figure>
+  </section>
+
+  <!-- 7 -->
+  <section class="step">
+    <p class="stepnum">Step 7 · The trick that makes it solvable</p>
+    <h2>Matching fingerprints tells you the depth</h2>
+    <p>Here's the clever part. The sideways well also measures glow (GR) as it goes. If, at some point, the sideways well reads a glow pattern that <strong>matches the “jam layer” pattern in the answer key</strong>, then we know the straw must currently be in the jam layer — so we know its depth-into-the-cake (TVT)!</p>
+    <div class="big-key">
+      <span class="tag">The core idea</span>
+      <p>Match the sideways well's glow pattern against the straight-down answer key → and you've figured out which layer it's in → which gives you the TVT.</p>
+    </div>
+    <p>And the <em>direction</em> the pattern plays tells you which way the straw is moving:</p>
+    <div class="two">
+      <figure>
+        <img src="assets/image5.png" alt="GR pattern matching the typewell, going deeper" />
+        <figcaption>Glow pattern matches the answer key going <b>one way</b> → the straw is sinking <b>deeper</b> into the cake (TVT increasing).</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/image4.png" alt="GR pattern matching the typewell in reverse, coming back up" />
+        <figcaption>Same pattern but <b>in reverse</b> → the straw is rising back <b>up</b> (TVT decreasing).</figcaption>
+      </figure>
+    </div>
+    <div class="really">
+      <span class="tag">In plain terms</span>
+      <p>It's like recognizing a song. If you hear the chorus played forward, you're moving forward through the song; if you hear it backward, you're rewinding. The glow pattern is the song; the answer key is the original recording.</p>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="step">
+    <p class="stepnum">Step 8 · The boring-but-important case</p>
+    <h2>Flat glow = staying in one layer</h2>
+    <p>Sometimes the straw runs <em>along</em> a single layer instead of crossing layers. Then the glow barely changes — and that tells you the depth (TVT) is staying roughly the same.</p>
+    <figure>
+      <img src="assets/image6.png" alt="Diagram of TVT going up, down, and staying constant" />
+      <figcaption>Three situations side by side: glow rising or falling means the straw is crossing layers (TVT changing), while <b>flat glow means flat depth</b> — the straw is happily cruising inside one layer.</figcaption>
+    </figure>
+    <ul>
+      <li><span class="emoji">📈</span> Glow plays the pattern forward → going <strong>deeper</strong> (TVT up)</li>
+      <li><span class="emoji">📉</span> Glow plays the pattern backward → coming <strong>up</strong> (TVT down)</li>
+      <li><span class="emoji">➡️</span> Glow stays flat → <strong>same depth</strong> (TVT constant)</li>
+    </ul>
+  </section>
+
+  <!-- 9 -->
+  <section class="step">
+    <p class="stepnum">Step 9 · Watch it move</p>
+    <h2>A short video of the idea in action</h2>
+    <p>Words only go so far. This clip (straight from the original slides) shows the glow curve and the depth moving together, so you can <em>feel</em> how a wiggle in the glow means the straw is climbing or sinking.</p>
+    <figure>
+      <video controls preload="metadata" poster="assets/image7.png">
+        <source src="assets/media1.mp4" type="video/mp4" />
+        Your browser can't play this — open <code>assets/media1.mp4</code> directly.
+      </video>
+      <figcaption>Press play. Watch the glow (gamma ray) wiggle, and watch the depth respond. (No sound needed. If it won't play, open <code>docs/assets/media1.mp4</code>.)</figcaption>
+    </figure>
+  </section>
+
+  <!-- 10 -->
+  <section class="step">
+    <p class="stepnum">Step 10 · The actual challenge setup</p>
+    <h2>You're given half the answers — predict the other half</h2>
+    <div class="analogy">
+      <span class="tag">Picture this</span>
+      Imagine driving with GPS. For the first part of the trip the GPS works perfectly and shows exactly where you are. Then <strong>the GPS dies</strong>. For the rest of the trip you have to figure out your position yourself, using the road signs (the glow pattern) and a map (the answer key).
+    </div>
+    <p>That “moment the GPS dies” is called the <strong>Prediction Start</strong>, or <strong>PS</strong>. Before PS, you're told the depth (TVT) at every point. After PS, you must predict it.</p>
+    <div class="word">
+      <span class="tag">New word</span>
+      <p><b>PS (Prediction Start)</b> = the point along the well where the known answers stop and your job begins. The column <code>TVT_input</code> is just “TVT, but only filled in up to PS” — it's the part of the trip where the GPS still worked.</p>
+    </div>
+    <div class="really">
+      <span class="tag">A concrete example from the real data</span>
+      <p>One real well has <strong>5,278</strong> points. The depth is given for the first <strong>1,442</strong> of them (up to PS). You must predict the remaining <strong>3,836</strong> points — and sure enough, the contest asks for exactly 3,836 answers for that well. You predict <em>every foot after the GPS dies</em>.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="step">
+    <p class="stepnum">Step 11 · What's in the files</p>
+    <h2>The two spreadsheets you get for each well</h2>
+    <p>Every well comes as two simple spreadsheets (CSV files). Here's every column in plain English.</p>
+
+    <h3 class="sans">① The horizontal well (the one you predict)</h3>
+    <figure>
+      <img src="assets/image2.png" alt="Horizontal well spreadsheet with many columns" />
+      <figcaption>One row for every point along the well, spaced about one foot apart.</figcaption>
+    </figure>
+    <table>
+      <thead><tr><th>Column</th><th>Plain meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>MD</code></td><td>How far along the straw — total length drilled so far</td></tr>
+        <tr><td><code>X, Y, Z</code></td><td>The point's location in 3D space (like GPS coordinates: east, north, up/down)</td></tr>
+        <tr><td><code>GR</code></td><td>The glow (gamma ray) measured right there</td></tr>
+        <tr><td><code>TVT_input</code></td><td>The known depth — but only up to the PS point (the “GPS still worked” part)</td></tr>
+        <tr><td><code>TVT</code></td><td><strong>The answer you must predict</strong> (only filled in for practice wells)</td></tr>
+        <tr><td><code>ANCC, ASTNU, …, BUDA</code></td><td>Extra hints marking where each named layer sits (only in practice wells)</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sans">② The typewell (the answer key)</h3>
+    <table>
+      <thead><tr><th>Column</th><th>Plain meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>TVT</code></td><td>Depth into the cake (always fully known here)</td></tr>
+        <tr><td><code>GR</code></td><td>The glow at that depth</td></tr>
+        <tr><td><code>Geology</code></td><td>The name of the layer at that depth</td></tr>
+      </tbody>
+    </table>
+
+    <div class="heads-up">
+      <span class="tag">Important catch</span>
+      <p>For the wells you're actually <em>graded</em> on, the horizontal spreadsheet is stripped down to just <code>MD, X, Y, Z, GR, TVT_input</code>. The answer (<code>TVT</code>) and the layer hints are removed. So you really do have to figure the depth out from the glow, the location, and the answer key — exactly like the dead-GPS situation.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="step">
+    <p class="stepnum">Step 12 · A helpful detail</p>
+    <h2>The sideways glow is sharper than the answer key's glow</h2>
+    <p>One practical tip from the experts: the glow measured along the <strong>sideways</strong> well is more detailed (higher resolution) than the glow in the straight-down answer key. It's like comparing a hi-res photo to a thumbnail — both show the same scene, but one has more detail.</p>
+    <div class="two">
+      <figure>
+        <img src="assets/image9.png" alt="Well path with the Prediction Start point marked" />
+        <figcaption>The well path with the <b>Prediction Start (PS)</b> marked — splitting the “glow we know with answers” from the “glow we must use to guess.”</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/image8.png" alt="Comparison of glow curves showing better correlation" />
+        <figcaption>The sideways glow (green) lines up better with another high-detail glow (red) than with the lower-detail answer key (black).</figcaption>
+      </figure>
+    </div>
+    <div class="really">
+      <span class="tag">What to do with that</span>
+      <p>Use the detailed sideways glow from <em>before</em> PS — where you already know the depth — to learn this particular well's glow-to-depth habits, then carry that knowledge forward past PS. It's more reliable than leaning only on the blurry answer key.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="step">
+    <p class="stepnum">Step 13 · Using the neighborhood</p>
+    <h2>The cake is tilted — and neighbors tilt the same way</h2>
+    <div class="analogy">
+      <span class="tag">Picture this</span>
+      The buried cake is slightly <strong>tilted</strong>. Geologists call that tilt the <strong>dip</strong>. If you push your straw in the same direction the cake slopes, your depth changes fast. If you push across the slope, the depth barely changes. The compass direction you push is called the <strong>azimuth</strong>.
+    </div>
+    <div class="two">
+      <figure>
+        <img src="assets/image12.png" alt="Layers looking almost flat" />
+        <figcaption>From one direction the layers look <b>almost flat</b>.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/image13.png" alt="Layers clearly tilting" />
+        <figcaption>From another direction the same layers clearly <b>tilt</b> (dip).</figcaption>
+      </figure>
+    </div>
+    <p>And crucially, <strong>nearby wells sit in the same tilted cake</strong>, so they behave alike. If the neighbor's layer dips down to the east, yours probably does too. So a well next door is a great hint.</p>
+    <div class="two">
+      <figure>
+        <img src="assets/image14.png" alt="Neighboring wells with similar dip" />
+        <figcaption>Neighboring wells show <b>similar tilt</b> — copy the neighbor's behavior as a starting guess.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/image15.png" alt="Flat and dipping pattern repeating across wells" />
+        <figcaption>The same flat-here / tilted-there pattern <b>repeats</b> across nearby wells.</figcaption>
+      </figure>
+    </div>
+    <div class="word">
+      <span class="tag">Two new words</span>
+      <p><b>Dip</b> = how much the layers are tilted. <b>Azimuth</b> = the compass direction the well is drilled. <b>Offset well</b> = a neighboring well, useful as a hint because it sits in the same tilted cake.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="step">
+    <p class="stepnum">Step 14 · The wider view</p>
+    <h2>All the wells together</h2>
+    <p>You're not given one lonely well — you're given a whole field of them. Seeing them together helps you borrow hints from neighbors (Step 13).</p>
+    <figure>
+      <img src="assets/image10.png" alt="Map view of all the wells from above" />
+      <figcaption><b>Map view</b> — looking straight down from above, like a road map. Each line is one well's path. Wells close together share the same geology.</figcaption>
+    </figure>
+    <figure>
+      <video controls preload="metadata" poster="assets/image11.png">
+        <source src="assets/media2.mp4" type="video/mp4" />
+        Your browser can't play this — open <code>assets/media2.mp4</code> directly.
+      </video>
+      <figcaption><b>3D view</b> — the same wells, now showing depth too, so you can see how they stack and how the cake tilts. (Bigger file; if it won't play inline, open <code>docs/assets/media2.mp4</code>.)</figcaption>
+    </figure>
+  </section>
+
+  <!-- 15 -->
+  <section class="step">
+    <p class="stepnum">Step 15 · How you win</p>
+    <h2>How your guesses get scored</h2>
+    <p>For every predicted point, the contest compares your guessed depth to the real depth and measures the gap:</p>
+    <pre>gap  =  real depth  −  your guess        (at each point)</pre>
+    <p>Then it combines all those gaps into a single score using a formula called <strong>RMSE</strong>. You don't need the math — just the behavior:</p>
+    <div class="word">
+      <span class="tag">New word</span>
+      <p><b>RMSE (Root Mean Squared Error)</b> = roughly, “your typical gap, but big mistakes count extra.” Lower is better. Because mistakes are <em>squared</em> before averaging, one huge miss hurts more than several tiny ones.</p>
+    </div>
+    <div class="really">
+      <span class="tag">So the winning strategy is…</span>
+      <p>Be <strong>roughly right everywhere</strong> rather than perfect in spots and wildly wrong elsewhere. Nail the big-picture trend — is the straw going up, down, or staying flat — and avoid the occasional huge blunder. Smooth, sensible guesses beat jittery ones.</p>
+    </div>
+    <div class="really">
+      <span class="tag">What you hand in</span>
+      <p>A simple two-column file: an <code>id</code> for each point you were asked about, and your guessed depth <code>tvt</code>. One row per point after PS.</p>
+      <pre>id,tvt
+000d7d20_1442,12550.4
+000d7d20_1443,12550.3
+...</pre>
+    </div>
+  </section>
+
+  <!-- TLDR -->
+  <div class="tldr">
+    <h2>The entire thing, in 8 sentences</h2>
+    <ol>
+      <li>Underground is a tilted <strong>layer cake</strong> of different rocks.</li>
+      <li>A <strong>well</strong> is a straw pushed down and then sideways through it.</li>
+      <li>We want to know the <strong>depth into the cake (TVT)</strong> at every point — that tells us the rock.</li>
+      <li>Each rock layer has a natural <strong>glow fingerprint (GR)</strong> we can measure.</li>
+      <li>A straight-down reference well (the <strong>typewell</strong>) gives us a complete, labeled fingerprint catalog.</li>
+      <li>We <strong>match</strong> the sideways well's glow against that catalog to figure out its depth.</li>
+      <li>We're told the depth up to a cutoff point (<strong>PS</strong>) and must <strong>predict the rest</strong>.</li>
+      <li>We're scored on how close our guesses are (<strong>RMSE</strong>) — so be reliably close and avoid big blunders.</li>
+    </ol>
+  </div>
+
+</main>
+
+<footer>
+  Built from <code>AI_wellbore_geology_prediction_task_en.pptx</code> · figures &amp; videos are the originals in <code>docs/assets/</code> · numbers checked against the real data files.
+</footer>
+
+</body>
+</html>
